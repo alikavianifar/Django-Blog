@@ -1,5 +1,5 @@
 """
-Base Django settings for BridgeLang project.
+Base Django settings for the Django Blog project.
 
 Contains all shared configuration used by both development
 and production environments. Environment-specific settings

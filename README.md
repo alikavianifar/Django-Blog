@@ -8,7 +8,7 @@
 ![Django](https://img.shields.io/badge/Django-4.2_LTS-092E20?logo=django&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-72-brightgreen)
+![Tests](https://img.shields.io/badge/tests-74-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-22c55e)
 
 </div>
@@ -138,9 +138,11 @@ Django-Blog/
 │   └── templatetags/            # Sidebar and statistics template tags
 ├── AccountsFolder/              # Email-or-username backend, signup, login, logout
 ├── LessonsFolder/               # Courses, lessons and user progress
+│                                # (each app with models has a migrations/ folder)
 ├── templates/                   # Base and app templates, error and 503 pages
 ├── static/                      # CSS, JavaScript, vendor libraries, images
 ├── Dockerfile                   # Multi-stage image served by Gunicorn
+├── .dockerignore                # Keeps .env and local files out of the image
 ├── docker-compose.yml           # Django, PostgreSQL and optional smtp4dev
 ├── liara.json                   # Liara platform configuration
 ├── liara_nginx.conf             # Nginx headers and static/media rules for Liara
@@ -177,7 +179,7 @@ pip install -r requirements.txt
 # 4. (Optional) Create a .env file to override the defaults
 cp .env.example .env
 
-# 5. Apply migrations and create an admin user
+# 5. Apply migrations (they are included in the repository) and create an admin user
 python manage.py migrate
 python manage.py createsuperuser
 
@@ -198,8 +200,9 @@ cd Django-Blog
 
 # 2. Create the environment file and edit it
 cp .env.example .env
-# Set SECRET_KEY, DEBUG=False and PGDB_PASS, and make sure the database
-# variables match the db service in docker-compose.yml
+# Set SECRET_KEY (a strong random value) and PGDB_PASS, and review
+# ALLOWED_HOSTS, SITE_URL and the email settings.
+# The compose file sets the database host, name and user itself.
 
 # 3. Build and start the stack
 docker compose up --build
@@ -208,7 +211,7 @@ docker compose up --build
 docker compose exec web python manage.py createsuperuser
 ```
 
-On startup the `web` container applies migrations, collects static files and starts Gunicorn with three workers. Open <http://localhost:8000>.
+On startup the `web` container applies the migrations, collects static files and starts Gunicorn with three workers. PostgreSQL is published on the host loopback only (`127.0.0.1:5432`). Open <http://localhost:8000>.
 
 To add the development mail server (smtp4dev), start the stack with the `dev` profile and point the email variables at it (`EMAIL_HOST=mailserver`, `EMAIL_PORT=25`, `EMAIL_USE_TLS=False`):
 
@@ -222,10 +225,11 @@ docker compose --profile dev up --build
 ## Managing Content
 
 1. Sign in to `/admin/` with the superuser account.
-2. Create one or more **categories**, then add a **post**. A post appears on the site only when its **status** is checked and its **published date** is in the past.
-3. Review incoming **comments** and tick **approved** to publish them.
-4. For the lesson module, create a **course** and add its **lessons** inline. Lessons are ordered by their `order` value.
-5. Additional staff accounts can write posts and manage only their own.
+2. Open **Sites** and set the domain of the site selected by `SITE_ID` (the default entry is `example.com`). The domain is used in `sitemap.xml` and in password-reset links.
+3. Create one or more **categories**, then add a **post**. A post appears on the site only when its **status** is checked and its **published date** is in the past.
+4. Review incoming **comments** and tick **approved** to publish them.
+5. For the lesson module, create a **course** and add its **lessons** inline. Lessons are ordered by their `order` value.
+6. Additional staff accounts can write posts and manage only their own.
 
 ---
 
@@ -236,8 +240,8 @@ Configuration is read with `python-decouple` from a `.env` file or from the proc
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DJANGO_SETTINGS_MODULE` | development settings | Set to `CoreFolder.settings.production` for production (the compose file does this) |
-| `SECRET_KEY` | insecure development key | Django secret key; **always set it in production** |
-| `DEBUG` | `True` | Debug mode; **set to `False` in production** |
+| `SECRET_KEY` | insecure development key | Django secret key. The production settings refuse to start with the development key or `change-me` |
+| `DEBUG` | `True` (development) / `False` (production) | Debug mode |
 | `ALLOWED_HOSTS` | `localhost,127.0.0.1` | Comma-separated host names |
 | `SITE_ID` | `2` | Django Sites framework ID |
 | `SITE_URL` | `http://127.0.0.1:8000` | Base URL used in notification emails |
@@ -247,7 +251,7 @@ Configuration is read with `python-decouple` from a `.env` file or from the proc
 | `PGDB_NAME` | `postgres` | Database name (*production*) |
 | `PGDB_USER` | `postgres` | Database user (*production*) |
 | `PGDB_PASS` | empty | Database password (*production*) |
-| `PGDB_HOST` | `localhost` | Database host; use `db` with Docker Compose (*production*) |
+| `PGDB_HOST` | `localhost` | Database host; Docker Compose sets it to `db` (*production*) |
 | `PGDB_PORT` | `5432` | Database port (*production*) |
 | `EMAIL_BACKEND` | console (dev) / SMTP (production) | Email backend |
 | `EMAIL_HOST` | `localhost` (dev) / `smtp.gmail.com` (production) | SMTP host |
@@ -267,13 +271,13 @@ Configuration is read with `python-decouple` from a `.env` file or from the proc
 
 ## Running Tests
 
-The project has **72 tests** across its four apps:
+The project has **74 tests** across its four apps:
 
 | App | Tests |
 |-----|-------|
 | `AppFolder` | 18 |
 | `BlogFolder` | 22 |
-| `AccountsFolder` | 14 |
+| `AccountsFolder` | 16 |
 | `LessonsFolder` | 18 |
 
 ```bash
@@ -302,8 +306,9 @@ docker compose exec web python manage.py test
 ### Production checklist
 
 - [ ] `SECRET_KEY` set to a strong, unique value (for example `python -c "import secrets; print(secrets.token_urlsafe(50))"`)
-- [ ] `DEBUG=False`
+- [ ] `DEBUG` left at `False`
 - [ ] `ALLOWED_HOSTS` and `SITE_URL` set to the real domain
+- [ ] The Sites domain set in the admin
 - [ ] `PGDB_PASS` and the SMTP credentials set
 - [ ] `USE_SSL_CONFIG=True` behind an HTTPS proxy
 
@@ -319,7 +324,10 @@ docker compose exec web python manage.py test
 - **Server-side comment assignment:** a comment's post is never read from user input
 - **HTTPS hardening:** with `USE_SSL_CONFIG=True` the production settings enable the HTTPS redirect, secure session and CSRF cookies, HSTS (one year, subdomains, preload), `nosniff`, `SAMEORIGIN` framing, a strict referrer policy and proxy header handling
 - **Debug tooling:** the debug toolbar is installed only with the development settings
-- **Defaults to override:** without environment variables the project uses an insecure development `SECRET_KEY` and `DEBUG=True`, so always set both before deploying
+- **Safe redirects:** the `next` parameter after login is followed only for URLs on the same host
+- **Production guard:** the production settings keep `DEBUG` off by default and refuse to start without a real `SECRET_KEY`
+- **Container hygiene:** `.dockerignore` keeps `.env` out of the image, and the compose file publishes PostgreSQL on the loopback interface only
+- **Development defaults:** the development settings use an insecure `SECRET_KEY` and `DEBUG=True`, so use them only locally
 
 ---
 

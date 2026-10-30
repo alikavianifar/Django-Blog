@@ -1,5 +1,5 @@
 """
-URL configuration for CoreFolder project (BridgeLang).
+URL configuration for the CoreFolder project (Django Blog).
 
 Routes all incoming requests to the appropriate app-level URL
 configurations. Includes sitemap, robots.txt, password reset,

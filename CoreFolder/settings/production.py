@@ -1,18 +1,31 @@
 """
-Production-specific Django settings for BridgeLang.
+Production-specific Django settings for Django Blog.
 
 Extends base settings with production-hardened defaults:
 - PostgreSQL database
 - SMTP email backend
 - SSL/HSTS security headers
-- Debug toolbar disabled
+- Debug disabled unless explicitly enabled
+- A real SECRET_KEY is required
 - Robots configured for production
 
 Usage:
     DJANGO_SETTINGS_MODULE=CoreFolder.settings.production
 """
 
+from django.core.exceptions import ImproperlyConfigured
+
 from CoreFolder.settings.base import *  # noqa: F401,F403
+
+# Debug is off in production unless DEBUG=True is set explicitly
+DEBUG = config("DEBUG", cast=bool, default=False)  # noqa: F405
+
+# Refuse to start with the development key or the template placeholder
+if SECRET_KEY.startswith("django-insecure") or SECRET_KEY == "change-me":  # noqa: F405
+    raise ImproperlyConfigured(
+        "Set a strong SECRET_KEY in the environment before using the "
+        "production settings."
+    )
 
 # Database — PostgreSQL for production
 DATABASES = {
@@ -54,7 +67,6 @@ if config("USE_SSL_CONFIG", cast=bool, default=False):  # noqa: F405
 
     # Additional security headers
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_BROWSER_XSS_FILTER = True
     X_FRAME_OPTIONS = "SAMEORIGIN"
     SECURE_REFERRER_POLICY = "strict-origin"
     USE_X_FORWARDED_HOST = True

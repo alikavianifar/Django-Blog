@@ -1,5 +1,5 @@
 """
-Development-specific Django settings for BridgeLang.
+Development-specific Django settings for Django Blog.
 
 Extends base settings with development-friendly defaults:
 - SQLite database

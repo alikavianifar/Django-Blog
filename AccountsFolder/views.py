@@ -11,6 +11,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.contrib import messages
+from django.utils.http import url_has_allowed_host_and_scheme
 from decouple import config
 import re
 
@@ -79,7 +80,11 @@ def login_view(request: HttpRequest) -> HttpResponse:
 
                 # Redirect to 'next' URL or default page
                 next_url = request.POST.get('next')
-                if next_url:
+                if next_url and url_has_allowed_host_and_scheme(
+                    next_url,
+                    allowed_hosts={request.get_host()},
+                    require_https=request.is_secure(),
+                ):
                     return redirect(next_url)
                 return redirect('/Lessons/')
         else:

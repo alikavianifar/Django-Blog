@@ -9,6 +9,8 @@ from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth.models import User
 
+from captcha.models import CaptchaStore
+
 from AccountsFolder.forms import EmailUserCreationForm
 from AccountsFolder.backends import EmailOrUsernameModelBackend
 
@@ -159,3 +161,36 @@ class AccountsURLTest(TestCase):
     def test_logout_url(self) -> None:
         """Test that the logout URL resolves correctly."""
         self.assertEqual(reverse('Accounts:logout'), '/Accounts/logout/')
+
+
+class LoginRedirectTest(TestCase):
+    """Tests for the post-login redirect target."""
+
+    def setUp(self) -> None:
+        """Create a test user."""
+        User.objects.create_user(
+            username='testuser',
+            email='test@example.com',
+            password='securepass123',
+        )
+
+    def _login(self, next_url: str):
+        """Submit the login form with the given 'next' value."""
+        captcha = CaptchaStore.objects.get(hashkey=CaptchaStore.generate_key())
+        return self.client.post(reverse('Accounts:login'), {
+            'username': 'testuser',
+            'password': 'securepass123',
+            'captcha_0': captcha.hashkey,
+            'captcha_1': captcha.response,
+            'next': next_url,
+        })
+
+    def test_login_redirects_to_local_next_url(self) -> None:
+        """Test that a same-site 'next' URL is honoured after login."""
+        response = self._login('/blog/')
+        self.assertRedirects(response, '/blog/', fetch_redirect_response=False)
+
+    def test_login_ignores_external_next_url(self) -> None:
+        """Test that an external 'next' URL falls back to the default page."""
+        response = self._login('https://evil.example/phish')
+        self.assertRedirects(response, '/Lessons/', fetch_redirect_response=False)

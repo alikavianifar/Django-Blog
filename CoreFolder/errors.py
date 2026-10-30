@@ -1,5 +1,5 @@
 """
-Custom error handlers for the BridgeLang application.
+Custom error handlers for the Django Blog application.
 
 Provides user-friendly error pages for HTTP 400, 403, 404, and 500 errors
 instead of Django's default error responses.

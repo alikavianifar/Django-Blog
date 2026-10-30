@@ -1,5 +1,5 @@
 """
-Settings package for BridgeLang.
+Settings package for Django Blog.
 
 Automatically selects the correct settings module based on the
 DJANGO_SETTINGS_MODULE environment variable. Defaults to the
